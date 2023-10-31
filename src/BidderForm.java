@@ -159,9 +159,24 @@ public class BidderForm extends JFrame {
                 String endTime = resultSet.getString("end_time");
                 double maxBid = resultSet.getDouble("max_bid");
 
-                Object[] data = {aid,title, description, currentBid, minBidIncrement, startTime, endTime, maxBid};
+                Object[] data = {aid, title, description, currentBid, minBidIncrement, startTime, endTime, maxBid};
                 model.addRow(data);
             }
+
+            // Create the "Place Bid" button
+            JButton placeBidButton = new JButton("Place Bid");
+            placeBidButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    // Handle placing a bid for the selected auction
+                    showPlaceBidForm(); // Show the Place Bid Form
+                }
+            });
+
+            // Add the "Place Bid" button to the auctionListFrame
+            JPanel buttonPanel = new JPanel();
+            buttonPanel.add(placeBidButton);
+            auctionListFrame.add(buttonPanel, BorderLayout.SOUTH);
 
             JScrollPane scrollPane = new JScrollPane(table);
             auctionListFrame.add(scrollPane);
@@ -178,8 +193,144 @@ public class BidderForm extends JFrame {
         }
     }
 
+    private void showPlaceBidForm() {
+        // Create a new JFrame for the Place Bid form
+        JFrame placeBidFrame = new JFrame("Place Bid");
+        placeBidFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
+        JPanel formPanel = new JPanel();
+        formPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 10, 5);
 
+        JTextField auctionIdField = createNumericField("Auction ID:");
+
+        JTextField currentBidField = createNumericField("Current Bid:");
+
+        addToFormPanel(formPanel, "Auction ID:", auctionIdField, gbc);
+
+        addToFormPanel(formPanel, "Current Bid:", currentBidField, gbc);
+
+        JButton doneButton = new JButton("Done");
+        doneButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Handle adding details to the watchlist table
+                addToWatchlist(
+                        auctionIdField.getText(),
+                        currentBidField.getText()
+                );
+                String auctionId = auctionIdField.getText();
+                String currentBid = currentBidField.getText();
+                if (isBidValid(auctionId, currentBid)) {
+                    addToWatchlist(auctionId, currentBid);
+                    updateAuctionCurrentBid(auctionId, currentBid);
+                    placeBidFrame.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(null, "Bid must be greater than the current bid for this auction.", "Invalid Bid", JOptionPane.ERROR_MESSAGE);
+                }
+                // Close the Place Bid form
+                placeBidFrame.dispose();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(doneButton);
+
+        placeBidFrame.add(formPanel, BorderLayout.CENTER);
+        placeBidFrame.add(buttonPanel, BorderLayout.SOUTH);
+
+        placeBidFrame.pack();
+        placeBidFrame.setLocationRelativeTo(this);
+        placeBidFrame.setVisible(true);
+    }
+    private boolean isBidValid(String auctionId, String currentBid) {
+        try {
+            String jdbcUrl = "jdbc:mysql://localhost:3306/appxviewhacks";
+            String username = "root";
+            String password = "12Athmikha@";
+            double bidAmount = Double.parseDouble(currentBid);
+
+            // Query to get the current_bid for the auction
+            String getCurrentBidQuery = "SELECT current_bid FROM auction WHERE aid = ?";
+            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(getCurrentBidQuery);
+            preparedStatement.setString(1, auctionId);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                double currentAuctionBid = resultSet.getDouble("current_bid");
+                return bidAmount > currentAuctionBid;
+            }
+
+            resultSet.close();
+            preparedStatement.close();
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    private void updateAuctionCurrentBid(String auctionId, String newBid) {
+        try {
+            String jdbcUrl = "jdbc:mysql://localhost:3306/appxviewhacks";
+            String username = "root";
+            String password = "12Athmikha@";
+
+            double bidAmount = Double.parseDouble(newBid);
+            String updateCurrentBidQuery = "UPDATE auction SET current_bid = ? WHERE aid = ?";
+
+            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+            PreparedStatement preparedStatement = connection.prepareStatement(updateCurrentBidQuery);
+            preparedStatement.setDouble(1, bidAmount);
+            preparedStatement.setString(2, auctionId);
+
+            preparedStatement.executeUpdate();
+            preparedStatement.close();
+            connection.close();
+        } catch ( Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private void addToWatchlist(String auctionId, String currentBid) {
+        try {
+            String jdbcUrl = "jdbc:mysql://localhost:3306/appxviewhacks";
+            String username = "root";
+            String password = "12Athmikha@";
+
+            Connection connection = DriverManager.getConnection(jdbcUrl, username, password);
+
+            // Retrieve the last ID from the bidder table
+            String getLastBidderIdQuery = "SELECT MAX(bid) AS last_bidder_id FROM bidder";
+            Statement lastBidderIdStatement = connection.createStatement();
+            ResultSet lastBidderIdResult = lastBidderIdStatement.executeQuery(getLastBidderIdQuery);
+
+            int lastBidderId = 0; // Default value
+            if (lastBidderIdResult.next()) {
+                lastBidderId = lastBidderIdResult.getInt("last_bidder_id");
+            }
+
+            lastBidderIdResult.close();
+            lastBidderIdStatement.close();
+
+            // Insert the details into the watchlist table with the last bidder ID
+            String insertQuery = "INSERT INTO watchlist (aid, bid, max_bid) VALUES (?, ?, ?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(insertQuery);
+            preparedStatement.setString(1, auctionId);
+            preparedStatement.setInt(2, lastBidderId);
+            preparedStatement.setString(3, currentBid);
+
+            preparedStatement.executeUpdate();
+
+            preparedStatement.close();
+            connection.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
