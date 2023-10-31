@@ -135,12 +135,22 @@ public class BidderForm extends JFrame {
             auctionListFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
             // Create a JTable to display the auctions
-            String[] columnNames = {"Title", "Description", "Current Bid", "Minimum Bid Increment", "Start Time", "End Time", "Max Bid"};
+            String[] columnNames = {"AID","Title", "Description", "Current Bid", "Minimum Bid Increment", "Start Time", "End Time", "Max Bid"};
+
             DefaultTableModel model = new DefaultTableModel(columnNames, 0);
 
             JTable table = new JTable(model);
+            table.getColumnModel().getColumn(0).setPreferredWidth(100);
+            table.getColumnModel().getColumn(1).setPreferredWidth(200); // Description
+            table.getColumnModel().getColumn(2).setPreferredWidth(100); // Current Bid
+            table.getColumnModel().getColumn(3).setPreferredWidth(150); // Minimum Bid Increment
+            table.getColumnModel().getColumn(4).setPreferredWidth(150); // Start Time
+            table.getColumnModel().getColumn(5).setPreferredWidth(150); // End Time
+            table.getColumnModel().getColumn(6).setPreferredWidth(100); // Max Bid
+            table.getColumnModel().getColumn(7).setPreferredWidth(100);
 
             while (resultSet.next()) {
+                int aid = resultSet.getInt("aid");
                 String title = resultSet.getString("title");
                 String description = resultSet.getString("description");
                 double currentBid = resultSet.getDouble("current_bid");
@@ -149,7 +159,7 @@ public class BidderForm extends JFrame {
                 String endTime = resultSet.getString("end_time");
                 double maxBid = resultSet.getDouble("max_bid");
 
-                Object[] data = {title, description, currentBid, minBidIncrement, startTime, endTime, maxBid};
+                Object[] data = {aid,title, description, currentBid, minBidIncrement, startTime, endTime, maxBid};
                 model.addRow(data);
             }
 
@@ -167,6 +177,9 @@ public class BidderForm extends JFrame {
             e.printStackTrace();
         }
     }
+
+
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {

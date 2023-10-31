@@ -5,6 +5,8 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class auctionForm extends JFrame {
 
@@ -12,8 +14,8 @@ public class auctionForm extends JFrame {
     private JTextField descriptionField;
     private JTextField currentBidField;
     private JTextField minimumBidIncrementField;
-    private JTextField startTimeField;
-    private JTextField endTimeField;
+    private JSpinner startTimeSpinner;
+    private JSpinner endTimeSpinner;
     private JTextField maxBidField;
 
     public auctionForm() {
@@ -34,8 +36,13 @@ public class auctionForm extends JFrame {
         descriptionField = createTextField("Description:");
         currentBidField = createNumericField("Current Bid:");
         minimumBidIncrementField = createNumericField("Minimum Bid Increment:");
-        startTimeField = createTextField("Start Time:");
-        endTimeField = createTextField("End Time:");
+        startTimeSpinner = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor startTimeEditor = new JSpinner.DateEditor(startTimeSpinner, "yyyy-MM-dd HH:mm:ss");
+        startTimeSpinner.setEditor(startTimeEditor);
+
+        endTimeSpinner = new JSpinner(new SpinnerDateModel());
+        JSpinner.DateEditor endTimeEditor = new JSpinner.DateEditor(endTimeSpinner, "yyyy-MM-dd HH:mm:ss");
+        endTimeSpinner.setEditor(endTimeEditor);
         maxBidField = createNumericField("Maximum Bid:");
 
         // Add components to the formPanel with GridBagConstraints
@@ -43,9 +50,10 @@ public class auctionForm extends JFrame {
         addToFormPanel(formPanel, "Description:", descriptionField, gbc);
         addToFormPanel(formPanel, "Current Bid:", currentBidField, gbc);
         addToFormPanel(formPanel, "Minimum Bid Increment:", minimumBidIncrementField, gbc);
-        addToFormPanel(formPanel, "Start Time:", startTimeField, gbc);
-        addToFormPanel(formPanel, "End Time:", endTimeField, gbc);
+        addToFormPanel(formPanel, "Start Time:", startTimeSpinner, gbc);
+        addToFormPanel(formPanel, "End Time:", endTimeSpinner, gbc);
         addToFormPanel(formPanel, "Maximum Bid:", maxBidField, gbc);
+
 
         JButton createButton = new JButton("Create Auction");
         createButton.addActionListener(new ActionListener() {
@@ -119,8 +127,11 @@ public class auctionForm extends JFrame {
                 preparedStatement.setNull(4, java.sql.Types.DOUBLE);
             }
 
-            preparedStatement.setString(5, startTimeField.getText());
-            preparedStatement.setString(6, endTimeField.getText());
+            SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSSSS");
+
+            preparedStatement.setString(5, dateTimeFormat.format((Date) startTimeSpinner.getValue()));
+            preparedStatement.setString(6, dateTimeFormat.format((Date) endTimeSpinner.getValue()));
+
 
             if (!maxBidField.getText().isEmpty()) {
                 preparedStatement.setDouble(7, Double.parseDouble(maxBidField.getText()));
